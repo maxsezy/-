@@ -1,0 +1,47 @@
+from selenium import webdriver
+import re
+import time
+import requests
+
+#创建浏览器对象
+driver = webdriver.Chrome()
+
+#请求页面
+driver.get('此处填写需要点赞的up主的主页')
+#模拟点击投稿页面
+#driver.find_element_by_xpath('//*[@id="navigator"]/div/div[1]/div[1]/a[3]/span[2]').click()
+
+result = driver.page_source
+
+video_url = re.findall(r'<a href="//(.*?)" target="_blank" class="cover">',result)
+
+for i in video_url:
+    print(i)
+    #获取页面html
+    BV = i
+    #获取到BV号链接
+    url = 'https://' + BV
+    #发送请求
+    response = requests.get(url).text
+    #获取av号
+    av_number = re.findall(r'<link data-vue-meta="true" rel="canonical" href="https://www.bilibili.com/video/av(.*?)/">',response)
+    #打印av号
+    for j in av_number:
+        #print(j)
+        def dz(av):
+            # 点赞发送的url
+            url = 'https://api.bilibili.com/x/web-interface/archive/like'
+            # 点赞请求的信息
+            data = {
+                'aid': av,
+                'like': '1',
+                'csrf': 'af70daa2d367fa46995559f3636cb19a'
+            }
+            cookies = {
+                'cookie': "CURRENT_FNVAL=16; bp_article_offset_176842712=396467310115334960; LIVE_BUVID=AUTO7415912592483716; _uuid=6C8BE354-E756-761C-873B-836DFBF6250452709infoc; sid=9nj5gjea; DedeUserID=176842712; DedeUserID__ckMd5=508b9d8ce201c1f6; SESSDATA=d27fe45a%2C1606820886%2Ccc084*61; bili_jct=af70daa2d367fa46995559f3636cb19a; rpdid=|(umuu|JkJk~0J'ulmukYmu~Y; CURRENT_QUALITY=112; buvid3=E20A90B8-0556-46F9-9C44-AFE407873FDB155808infoc; _dfcaptcha=5d8b989c94cd18c45cc7fe05f4923ee1; bp_video_offset_176842712=401374499222484392; bfe_id=da609d6ad479671e4cd33f2670c43937; PVID=68"}
+            headers = {
+                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36"}
+            # 发送点赞请求
+            response = requests.post(url, data=data, cookies=cookies, headers=headers)
+            print(response.text,j + '已点赞')
+        dz(j)
