@@ -1,47 +1,72 @@
+'''
+需要安装selenium
+chromedriver没有设置全局变量的需要指定文件路径
+点赞结束后会报错退出，不影响使用
+'''
+
+#导入模块
 from selenium import webdriver
 import re
 import time
 import requests
 
-#创建浏览器对象
+# 创建浏览器对象
 driver = webdriver.Chrome()
 
-#请求页面
-driver.get('此处填写需要点赞的up主的主页')
-#模拟点击投稿页面
-#driver.find_element_by_xpath('//*[@id="navigator"]/div/div[1]/div[1]/a[3]/span[2]').click()
+# 请求页面(要点赞的up主主页)
+driver.get('https://space.bilibili.com/11073?from=search&seid=9078286015054047334')
 
-result = driver.page_source
+# 点击主页
+driver.find_element_by_xpath('//*[@id="navigator"]/div/div[1]/div[1]/a[1]/span[2]').click()
 
-video_url = re.findall(r'<a href="//(.*?)" target="_blank" class="cover">',result)
+# 模拟点击投稿页面
+driver.find_element_by_xpath('//*[@id="navigator"]/div/div[1]/div[1]/a[3]/span[2]').click()
 
-for i in video_url:
-    print(i)
-    #获取页面html
-    BV = i
-    #获取到BV号链接
-    url = 'https://' + BV
-    #发送请求
-    response = requests.get(url).text
-    #获取av号
-    av_number = re.findall(r'<link data-vue-meta="true" rel="canonical" href="https://www.bilibili.com/video/av(.*?)/">',response)
-    #打印av号
-    for j in av_number:
-        #print(j)
-        def dz(av):
-            # 点赞发送的url
-            url = 'https://api.bilibili.com/x/web-interface/archive/like'
-            # 点赞请求的信息
-            data = {
-                'aid': av,
-                'like': '1',
-                'csrf': '填写自己的'
-            }
-            cookies = {
-                'cookie': "填写自己的cookies"}
-            headers = {
-                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36"}
-            # 发送点赞请求
-            response = requests.post(url, data=data, cookies=cookies, headers=headers)
-            print(response.text,j + '已点赞')
-        dz(j)
+# 获取到共有多少页面
+time.sleep(1)
+result_page = driver.page_source
+page = re.findall(r'<span class="be-pager-total">共 (.*?) 页，</span><span class="be-pager-options-elevator">',result_page)
+for i in page:
+    # i为视频总计页数
+    num = 0
+    while num < int(i):
+        time.sleep(1)
+        # 获取页面资源
+        result = driver.page_source
+        # 筛选出视频url
+        video_url = re.findall(r'<li data-aid="(.*?)" class="small-item fakeDanmu-item"><a href="//(.*?)" target="_blank" class="cover"><img src="//(.*?)" alt="(.*?)">',result)
+        # 将BV号转换为AV号
+        for a, b, c, d in video_url:
+            BV = b
+            video_name = d
+            # print(BV, video_name)
+            url = 'https://' + BV
+            # 发送请求（获取视频页面的信息）
+            response = requests.get(url).text
+            # 获取av号
+            av_number = re.findall(r'<link data-vue-meta="true" rel="canonical" href="https://www.bilibili.com/video/av(.*?)/">',response)
+            # print(BV,av_number)
+            for j in av_number:
+                # print(j)
+                def dz(av,name):
+                    # 点赞发送的url
+                    url = 'https://api.bilibili.com/x/web-interface/archive/like'
+                    # 点赞请求的信息
+                    data = {
+                        'aid': av,
+                        'like': '1',
+                        'csrf': '自己的csfr'
+                    }
+                    cookies = {
+                        'cookie': "填写自己的cookie"}
+                    headers = {
+                        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36"}
+                    # 发送点赞请求
+                    response = requests.post(url, data=data, cookies=cookies, headers=headers)
+                    print(name,j,'已点赞')
+                time.sleep(1)
+                dz(j,video_name)
+        # 自动点击下一页
+        time.sleep(1)
+        driver.find_element_by_xpath("//a[contains(text(),'下一页')]").click()
+        num += 1
